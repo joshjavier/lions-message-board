@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "tsx src/main.ts",
+    "start": "node dist/main.js",
     "dev": "tsx watch src/main.ts",
-    "type-check": "tsc --noEmit"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
   },
   "author": "Josh Javier",
   "license": "MIT",
