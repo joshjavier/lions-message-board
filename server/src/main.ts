@@ -13,8 +13,21 @@ const io = new Server(httpServer, {
   },
 });
 
+app.use(express.json());
+
 app.get('/', (req, res) => {
   res.send('<h1>Hello world</h1>');
+});
+
+app.post('/messages', (req, res) => {
+  const { author, body } = req.body;
+  console.log({ author, body });
+
+  // broadcast message
+  io.emit('message', { author, body });
+
+  // send response
+  res.send({ message: 'Got a POST request' });
 });
 
 io.on('connection', (socket) => {
