@@ -3,7 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 
 const RootLayout = () => {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center">
+    <>
       {/* <div> */}
       {/*   <Link to="/" className="[&.active]:font-bold"> */}
       {/*     Home */}
@@ -18,7 +18,7 @@ const RootLayout = () => {
       {/* <hr /> */}
       <Outlet />
       <TanStackRouterDevtools />
-    </div>
+    </>
   );
 };
 

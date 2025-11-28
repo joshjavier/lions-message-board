@@ -1,5 +1,21 @@
 import { useState, type FormEvent } from 'react';
-import { Button } from './ui/button/button';
+import { Button } from './ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from './ui/card';
+import { Field, FieldGroup, FieldLabel } from './ui/field';
+import { Input } from './ui/input';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupText,
+  InputGroupTextarea,
+} from './ui/input-group';
 
 export function MessageForm() {
   const [author, setAuthor] = useState('');
@@ -25,27 +41,58 @@ export function MessageForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-md space-y-4 p-4">
-      <input
-        className="w-full rounded border p-2"
-        placeholder="Your name (optional)"
-        value={author}
-        onChange={(e) => setAuthor(e.target.value)}
-      />
+    <Card className="mx-auto w-full sm:max-w-md">
+      <CardHeader>
+        <CardTitle>Post a Message</CardTitle>
+        <CardDescription>
+          Share a shout-out, cheer, or holiday message with the team! Your
+          message will appear on the screens across the production floor.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form id="message-form" onSubmit={handleSubmit}>
+          <FieldGroup>
+            <Field>
+              <FieldLabel>Name (optional)</FieldLabel>
+              <Input
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="Midoriya"
+                autoComplete="off"
+              />
+            </Field>
 
-      <textarea
-        className="w-full rounded border p-2"
-        placeholder="Your message"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        required
-      />
+            <Field>
+              <FieldLabel>Message</FieldLabel>
+              <InputGroup>
+                <InputGroupTextarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Ganbare!"
+                  rows={6}
+                />
+                <InputGroupAddon align="block-end">
+                  <InputGroupText className="tabular-nums">
+                    0/250 characters
+                  </InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </FieldGroup>
 
-      <Button type="submit" variant="default">
-        Send Message
-      </Button>
-
-      {success && <p className="text-green-600">Message sent!</p>}
-    </form>
+          {success && <p className="text-green-600">Message sent!</p>}
+        </form>
+      </CardContent>
+      <CardFooter>
+        <Field orientation="horizontal" className="justify-end">
+          <Button type="button" variant="outline">
+            Reset
+          </Button>
+          <Button type="submit" form="message-form">
+            Post Message
+          </Button>
+        </Field>
+      </CardFooter>
+    </Card>
   );
 }

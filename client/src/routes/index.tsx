@@ -7,8 +7,10 @@ export const Route = createFileRoute('/')({
 
 function Index() {
   return (
-    <div className="p-2 pb-5">
-      <MessageForm />
+    <div className="min-h-svh pt-20 pb-28">
+      <div className="box-content px-6">
+        <MessageForm />
+      </div>
     </div>
   );
 }
