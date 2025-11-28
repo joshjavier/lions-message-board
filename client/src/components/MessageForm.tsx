@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
+import { Button } from './ui/button/button';
 
-export function SubmitForm() {
+export function MessageForm() {
   const [author, setAuthor] = useState('');
   const [body, setBody] = useState('');
   const [success, setSuccess] = useState(false);
@@ -24,23 +25,27 @@ export function SubmitForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="mx-auto max-w-md space-y-4 p-4">
       <input
+        className="w-full rounded border p-2"
         placeholder="Your name (optional)"
         value={author}
         onChange={(e) => setAuthor(e.target.value)}
       />
 
       <textarea
+        className="w-full rounded border p-2"
         placeholder="Your message"
         value={body}
         onChange={(e) => setBody(e.target.value)}
         required
       />
 
-      <button type="submit">Send Message</button>
+      <Button type="submit" variant="default">
+        Send Message
+      </Button>
 
-      {success && <p>Message sent!</p>}
+      {success && <p className="text-green-600">Message sent!</p>}
     </form>
   );
 }

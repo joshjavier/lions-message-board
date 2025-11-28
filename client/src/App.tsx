@@ -3,7 +3,7 @@ import './App.css';
 import { socket } from './socket';
 import { ConnectionState } from './components/ConnectionState';
 import { ConnectionManager } from './components/ConnectionManager';
-import { SubmitForm } from './components/SubmitForm';
+import { MessageForm } from './components/MessageForm';
 import { Messages } from './components/Messages';
 
 interface Message {
@@ -43,7 +43,7 @@ function App() {
     <div className="App">
       <ConnectionState isConnected={isConnected} />
       <ConnectionManager />
-      <SubmitForm />
+      <MessageForm />
       <Messages messages={messages} />
     </div>
   );
