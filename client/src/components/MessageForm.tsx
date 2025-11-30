@@ -18,8 +18,8 @@ import {
 } from './ui/input-group';
 import { revalidateLogic, useForm } from '@tanstack/react-form';
 import * as v from 'valibot';
-
-const MAX_LENGTH = 140;
+import { api } from '@/lib/api-client';
+import { MESSAGE_MAX_LENGTH } from '@/lib/constants';
 
 const formSchema = v.object({
   author: v.pipe(v.string()),
@@ -27,14 +27,14 @@ const formSchema = v.object({
     v.string(),
     v.nonEmpty("Can't post an empty message."),
     v.maxLength(
-      MAX_LENGTH,
-      `Message must not exceed ${MAX_LENGTH} characters.`,
+      MESSAGE_MAX_LENGTH,
+      `Message must not exceed ${MESSAGE_MAX_LENGTH} characters.`,
     ),
   ),
 });
 
 export function MessageForm({
-  maxLength = MAX_LENGTH,
+  maxLength = MESSAGE_MAX_LENGTH,
 }: {
   maxLength?: number;
 }) {
@@ -50,31 +50,11 @@ export function MessageForm({
     validators: {
       onDynamic: formSchema,
     },
-    onSubmit: async ({ value }) => {
-      console.log(value);
+    onSubmit: async ({ value, formApi }) => {
+      await api.post('messages', { json: value });
+      formApi.reset();
     },
   });
-  // const [author, setAuthor] = useState('');
-  // const [body, setBody] = useState('');
-  // const [success, setSuccess] = useState(false);
-
-  // async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-  //   e.preventDefault();
-  //
-  //   const response = await fetch('http://localhost:3000/messages', {
-  //     method: 'POST',
-  //     body: JSON.stringify({ author, body }),
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //     },
-  //   });
-  //   const data = await response.json();
-  //   console.log(data);
-  //
-  //   setSuccess(true);
-  //   setBody('');
-  //   setAuthor('');
-  // }
 
   return (
     <Card className="mx-auto w-full sm:max-w-md">
@@ -186,6 +166,7 @@ export function MessageForm({
                 type="submit"
                 form="message-form"
                 disabled={overlimit || !canSubmit}
+                className="min-w-32"
               >
                 {isSubmitting ? '...' : 'Post Message'}
               </Button>
