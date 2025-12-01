@@ -1,4 +1,4 @@
-import type { Message } from '@/types';
+import type { Message } from '@/lib/types';
 import ky from 'ky';
 
 export const api = ky.create({

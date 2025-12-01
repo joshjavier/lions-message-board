@@ -77,7 +77,7 @@ app.post('/messages', async (req, res) => {
 });
 
 // Optional: fetch current active messages (for clients that prefer REST on connect)
-app.get('/messages/active', async (req, res) => {
+app.get('/messages/active', async (_req, res) => {
   try {
     const db = await getDb();
     const active = await db

@@ -1,5 +1,5 @@
+import { MessageForm } from '@/components/message-form';
 import { createFileRoute } from '@tanstack/react-router';
-import { MessageForm } from '../components/MessageForm';
 
 export const Route = createFileRoute('/')({
   component: Index,

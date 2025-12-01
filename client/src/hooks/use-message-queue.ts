@@ -1,6 +1,6 @@
 import { fetchActiveMessages } from '@/lib/api-client';
 import { socket } from '@/lib/socket';
-import type { Message } from '@/types';
+import type { Message } from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';
 
 // Max messages shown at once (client-side)

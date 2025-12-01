@@ -1,4 +1,4 @@
-import type { Message } from '@/types';
+import type { Message } from '@/lib/types';
 
 type ChatBubbleProps = {
   message: Pick<Message, 'author' | 'body'>;
