@@ -1,3 +1,4 @@
+import type { Message } from '@/types';
 import ky from 'ky';
 
 export const api = ky.create({
@@ -16,6 +17,11 @@ export const api = ky.create({
     ],
   },
 });
+
+export async function fetchActiveMessages() {
+  const res = await api.get<Message[]>('messages/active');
+  return res.json();
+}
 
 export async function fetchMessages() {
   return [

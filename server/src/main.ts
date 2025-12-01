@@ -37,7 +37,7 @@ const io = new Server(httpServer, {
  *  createdAt,
  *  status: "queued" | "displaying" | "expired",
  *  displayedAt: Date | null,
- *  expiredAt: Date | null
+ *  expiresAt: Date | null
  * }
  */
 
@@ -56,7 +56,7 @@ app.post('/messages', async (req, res) => {
       createdAt: new Date(),
       status: 'queued',
       displayedAt: null,
-      expiredAt: null,
+      expiresAt: null,
     };
 
     const result = await db.collection('messages').insertOne(doc);
@@ -129,18 +129,17 @@ async function expireDisplayedMessages() {
       const result = await db
         .collection('messages')
         .findOneAndUpdate(
-          { status: 'displaying', expiredAt: { $lte: now } },
+          { status: 'displaying', expiresAt: { $lte: now } },
           { $set: { status: 'expired', updatedAt: new Date() } },
           { returnDocument: 'after' },
         );
 
-      if (!result?.value) {
+      if (!result) {
         break;
       }
 
-      const expired = result.value;
-      io.emit('message-expired', { _id: expired._id.toString() });
-      console.log('Expired message', expired._id.toString());
+      io.emit('message-expired', { _id: result._id.toString() });
+      console.log('Expired message', result._id.toString());
     }
   } catch (err) {
     console.error('expireDisplayedMessages error', err);
@@ -181,21 +180,20 @@ async function activateQueuedMessages() {
         },
       );
 
-      if (!result?.value) {
+      if (!result) {
         break;
       }
 
-      const activated = result.value;
       // Broadcast authoritative activation (all nodes will get this)
       io.emit('message-activated', {
-        _id: activated._id.toString(),
-        author: activated.author,
-        body: activated.body,
-        displayedAt: activated.displayedAt,
-        expiresAt: activated.expiresAt,
+        _id: result._id.toString(),
+        author: result.author,
+        body: result.body,
+        displayedAt: result.displayedAt,
+        expiresAt: result.expiresAt,
       });
 
-      console.log('Activated message', activated._id.toString());
+      console.log('Activated message', result._id.toString());
     }
   } catch (err) {
     console.error('activateQueuedMessages error', err);

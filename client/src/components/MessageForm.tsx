@@ -155,13 +155,13 @@ export function MessageForm({
           ]}
           children={([overlimit, canSubmit, isSubmitting]) => (
             <Field orientation="horizontal" className="justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => form.reset()}
-              >
-                Reset
-              </Button>
+              {/* <Button */}
+              {/*   type="button" */}
+              {/*   variant="outline" */}
+              {/*   onClick={() => form.reset()} */}
+              {/* > */}
+              {/*   Reset */}
+              {/* </Button> */}
               <Button
                 type="submit"
                 form="message-form"
