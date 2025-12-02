@@ -5,7 +5,9 @@ import { Server } from 'socket.io';
 import { getDb } from './lib/mongodb.js';
 import path from 'node:path';
 
-const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const PORT = parseInt(process.env.PORT || '3000', 10);
+const HOST = isProduction ? '0.0.0.0' : 'localhost';
 const DISPLAY_DURATION_MS = parseInt(
   process.env.DISPLAY_DURATION_MS || '60000',
   10,
@@ -222,6 +224,6 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Server listening on http://${HOST}:${PORT}`);
 });
