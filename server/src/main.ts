@@ -3,6 +3,7 @@ import express from 'express';
 import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 import { getDb } from './lib/mongodb.js';
+import path from 'node:path';
 
 const PORT = process.env.PORT || 3000;
 const DISPLAY_DURATION_MS = parseInt(
@@ -90,6 +91,14 @@ app.get('/messages/active', async (_req, res) => {
     console.error('GET /messages/active', err);
     return res.status(500).json({ error: 'internal' });
   }
+});
+
+// Serve static frontend files
+app.use(express.static('public'));
+
+// SPA fallback
+app.get('/*all', (_req, res) => {
+  res.sendFile(path.join(import.meta.dirname, 'public', 'index.html'));
 });
 
 // --- Socket.io connection ---
