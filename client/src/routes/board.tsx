@@ -1,3 +1,4 @@
+import { BubbleWorld } from '@/components/bubble-world';
 import { MessageBoard } from '@/components/message-board';
 import { createFileRoute } from '@tanstack/react-router';
 
@@ -9,5 +10,15 @@ export const Route = createFileRoute('/board')({
 function RouteComponent() {
   // const messages = Route.useLoaderData();
 
-  return <MessageBoard />;
+  return (
+    <BubbleWorld
+      messages={[
+        'Hello!',
+        'Floaty bubbles!',
+        'React + Matter.js + TypeScript',
+        'Resize the window!',
+        'It just works 😊',
+      ]}
+    />
+  );
 }
