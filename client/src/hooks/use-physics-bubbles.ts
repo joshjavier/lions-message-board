@@ -11,6 +11,7 @@ export interface PhysicsBubble {
 export function usePhysicsBubbles(
   containerRef: RefObject<HTMLElement | null>,
   bubbleRefs: RefObject<(HTMLElement | null)[]>,
+  messages: string[],
 ) {
   const engineRef = useRef<Matter.Engine | null>(null);
   const itemsRef = useRef<PhysicsBubble[]>([]);
@@ -19,14 +20,14 @@ export function usePhysicsBubbles(
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const timeRef = useRef<number>(0);
 
+  // ------------------------------------------------------
+  // INITIAL SETUP: Create engine + first wave of bubbles
+  // ------------------------------------------------------
   useEffect(() => {
     const container = containerRef.current;
-    const elements = bubbleRefs.current;
+    const elements = bubbleRefs.current.filter((el) => el !== null);
 
-    // Filter out nul elements
-    const validElements = elements.filter((el) => el !== null);
-
-    if (!container || validElements.length === 0) {
+    if (!container || elements.length === 0) {
       return;
     }
 
@@ -36,7 +37,7 @@ export function usePhysicsBubbles(
     engineRef.current = engine;
 
     // Measure and create physics bodies
-    const items: PhysicsBubble[] = validElements.map((el) => {
+    const items: PhysicsBubble[] = elements.map((el) => {
       const width = el.offsetWidth;
       const height = el.offsetHeight;
 
@@ -129,7 +130,7 @@ export function usePhysicsBubbles(
 
         Matter.Body.applyForce(body, body.position, { x: driftX, y: driftY });
 
-        // Gentle pull toward center
+        // Gentle pull toward center to keep bubbles from clustering in corners
         const cx = container.clientWidth / 2;
         const cy = container.clientHeight / 2;
         const pullX = (cx - body.position.x) * 0.000002;
@@ -148,10 +149,65 @@ export function usePhysicsBubbles(
     return () => {
       cancelAnimationFrame(frameRef.current);
       resizeObserverRef.current?.disconnect();
+
       if (engineRef.current) {
         Matter.World.clear(engineRef.current.world, false);
         Matter.Engine.clear(engineRef.current);
       }
+
+      itemsRef.current = [];
     };
-  }, [containerRef, bubbleRefs]);
+  }, []);
+
+  // ------------------------------------------------------
+  // DYNAMIC BUBBLE ADDING (triggered by messages change)
+  // ------------------------------------------------------
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container || !engineRef.current) {
+      return;
+    }
+
+    const engine = engineRef.current;
+
+    const domEls = bubbleRefs.current.filter((el) => el !== null);
+    const existingEls = new Set(itemsRef.current.map((item) => item.el));
+
+    domEls.forEach((el) => {
+      if (existingEls.has(el)) {
+        return;
+      }
+
+      // New bubble found - measure and create body
+      const width = el.offsetWidth;
+      const height = el.offsetHeight;
+
+      // spawn position
+      const startX =
+        Math.random() * (container.clientWidth - width) + width / 2;
+      const startY =
+        Math.random() * (container.clientHeight - height) + height / 2;
+
+      el.style.transform = `translate(${startX - width / 2}px, ${startY - height / 2}px)`;
+
+      const body = Matter.Bodies.rectangle(startX, startY, width, height, {
+        restitution: 0.9,
+        frictionAir: 0.02,
+        inertia: Infinity,
+        inverseInertia: 0,
+      });
+
+      Matter.World.add(engine.world, body);
+
+      // Add to live list
+      itemsRef.current.push({ el, body, width, height });
+
+      // Initial velocity
+      Matter.Body.setVelocity(body, {
+        x: (Math.random() - 0.5) * 4,
+        y: (Math.random() - 0.5) * 4,
+      });
+    });
+  }, [messages]);
 }

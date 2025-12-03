@@ -10,7 +10,7 @@ export function BubbleWorld({ messages }: BubbleWorldProps) {
   const bubbleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Pass all the DOM elments to physics hook
-  usePhysicsBubbles(containerRef, bubbleRefs);
+  usePhysicsBubbles(containerRef, bubbleRefs, messages);
 
   return (
     <div
