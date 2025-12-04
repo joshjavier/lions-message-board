@@ -44,9 +44,9 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
           ref={(el) => {
             bubbleRefs.current[i] = el;
           }}
-          className="pointer-events-none absolute max-w-80 rounded-[20] border-[3px] border-[#7da0ff] bg-white p-4 text-[16px] leading-[1.4] text-[#345] shadow-[0_4px_12px_rgba(0,0,0,0.12)] will-change-transform select-none"
+          className="pointer-events-none absolute max-w-80 rounded-3xl bg-[#eae3c9] px-5 py-3 text-lg/[1.35] font-medium text-[#1a1a1a] will-change-transform select-none"
         >
-          {i + ' ' + msg.body}
+          {msg.body}
         </div>
       ))}
     </div>

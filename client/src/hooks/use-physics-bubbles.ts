@@ -57,6 +57,7 @@ export function usePhysicsBubbles(
         frictionAir: 0.02,
         inertia: Infinity,
         inverseInertia: 0,
+        chamfer: { radius: 24 },
       });
 
       Matter.Body.setVelocity(body, {
