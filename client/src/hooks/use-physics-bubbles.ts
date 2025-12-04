@@ -1,7 +1,9 @@
+import type { Message } from '@/lib/types';
 import Matter from 'matter-js';
-import { useEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 
 export interface PhysicsBubble {
+  id: string;
   el: HTMLElement;
   body: Matter.Body;
   width: number;
@@ -11,7 +13,7 @@ export interface PhysicsBubble {
 export function usePhysicsBubbles(
   containerRef: RefObject<HTMLElement | null>,
   bubbleRefs: RefObject<(HTMLElement | null)[]>,
-  messages: string[],
+  messages: Message[],
 ) {
   const engineRef = useRef<Matter.Engine | null>(null);
   const itemsRef = useRef<PhysicsBubble[]>([]);
@@ -38,6 +40,7 @@ export function usePhysicsBubbles(
 
     // Measure and create physics bodies
     const items: PhysicsBubble[] = elements.map((el) => {
+      const id = el.dataset.id ?? '';
       const width = el.offsetWidth;
       const height = el.offsetHeight;
 
@@ -61,7 +64,7 @@ export function usePhysicsBubbles(
         y: (Math.random() - 0.5) * 4,
       });
 
-      return { el, body, width, height };
+      return { id, el, body, width, height };
     });
 
     itemsRef.current = items;
@@ -173,10 +176,17 @@ export function usePhysicsBubbles(
 
     const domEls = bubbleRefs.current.filter((el) => el !== null);
     const existingEls = new Set(itemsRef.current.map((item) => item.el));
+    const existingIds = new Set(itemsRef.current.map((item) => item.id));
 
     domEls.forEach((el) => {
       if (existingEls.has(el)) {
         return;
+      }
+
+      const id = el.dataset.id ?? '';
+      // If data-id is missing, we still support creating a body but prefer id presence
+      if (!id) {
+        // TODO: If you prefer to ignore untagged elements, continue here.
       }
 
       // New bubble found - measure and create body
@@ -201,7 +211,7 @@ export function usePhysicsBubbles(
       Matter.World.add(engine.world, body);
 
       // Add to live list
-      itemsRef.current.push({ el, body, width, height });
+      itemsRef.current.push({ id, el, body, width, height });
 
       // Initial velocity
       Matter.Body.setVelocity(body, {
@@ -210,4 +220,42 @@ export function usePhysicsBubbles(
       });
     });
   }, [messages]);
+
+  // Expose remove by id callback so parent component (socket handler) can remove immediately
+  const removeBubbleById = useCallback((id: string) => {
+    if (!engineRef.current) {
+      return;
+    }
+
+    const idx = itemsRef.current.findIndex((item) => item.id === id);
+    if (idx === -1) {
+      return;
+    }
+
+    const item = itemsRef.current[idx];
+
+    // Remove body from world
+    Matter.World.remove(engineRef.current.world, item.body);
+
+    // Remove from live list
+    itemsRef.current.splice(idx, 1);
+  }, []);
+
+  // Also expose remove by element as an alternative
+  const removeBubbleByElement = useCallback((el: HTMLElement) => {
+    if (!engineRef.current) {
+      return;
+    }
+
+    const idx = itemsRef.current.findIndex((item) => item.el === el);
+    if (idx === -1) {
+      return;
+    }
+
+    const item = itemsRef.current[idx];
+    Matter.World.remove(engineRef.current.world, item.body);
+    itemsRef.current.splice(idx, 1);
+  }, []);
+
+  return { removeBubbleById, removeBubbleByElement };
 }
