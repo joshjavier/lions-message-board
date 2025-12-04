@@ -1,9 +1,11 @@
+@import url(https://fonts.bunny.net/css?family=albert-sans:400,500,600,700);
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-albert-sans);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -42,6 +44,7 @@
 }
 
 :root {
+  --font-albert-sans: 'Albert Sans', sans-serif;
   --radius: 0.625rem;
   --background: var(--color-slate-200);
   --foreground: oklch(0.129 0.042 264.695);
