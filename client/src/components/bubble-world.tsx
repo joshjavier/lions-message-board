@@ -35,7 +35,7 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
   return (
     <div
       ref={containerRef}
-      className="relative h-screen w-screen overflow-hidden"
+      className="relative h-screen w-screen overflow-hidden bg-[url(/message-board-background.png)] bg-cover bg-top-right bg-no-repeat"
     >
       {messages.map((msg, i) => (
         <div
