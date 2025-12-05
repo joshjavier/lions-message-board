@@ -10,7 +10,7 @@ interface BubbleWorldProps {
 
 export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const bubbleRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const bubbleRefs = useRef(new Map<string, HTMLDivElement>());
 
   // Pass all the DOM elments to physics hook
   const { removeBubbleById } = usePhysicsBubbles(
@@ -32,21 +32,30 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
     };
   }, []);
 
+  // useEffect(() => {
+  //   const interval = setInterval(debugWorld, 2000);
+  //   return () => clearInterval(interval);
+  // }, []);
+
   return (
     <div
       ref={containerRef}
       className="relative h-screen w-screen overflow-hidden bg-[url(/message-board-background.png)] bg-cover bg-top-right bg-no-repeat"
     >
-      {messages.map((msg, i) => (
+      {messages.map((message) => (
         <div
-          key={msg._id}
-          data-id={msg._id}
+          key={message._id}
+          data-id={message._id}
           ref={(el) => {
-            bubbleRefs.current[i] = el;
+            if (el) {
+              bubbleRefs.current.set(message._id, el);
+            } else {
+              bubbleRefs.current.delete(message._id);
+            }
           }}
           className="pointer-events-none absolute max-w-80 rounded-3xl bg-[#eae3c9] px-5 py-3 text-lg/[1.35] font-medium text-[#1a1a1a] will-change-transform select-none"
         >
-          {msg.body}
+          {message.body}
         </div>
       ))}
     </div>

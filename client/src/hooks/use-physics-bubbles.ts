@@ -10,11 +10,29 @@ export interface PhysicsBubble {
   height: number;
 }
 
+export interface UsePhysicsBubblesAPI {
+  removeBubbleById: (id: string) => void;
+  removeBubbleByElement: (el: HTMLElement) => void;
+  debugWorld: () => void;
+  getBodyCount: () => number;
+}
+
+/**
+ * This hook creates Matter bodies for DOM elements that appear in `bubbleRefs`.
+ * It tags and keeps `itemsRef` as the single source of truth for physics items.
+ *
+ * Use `removeBubbleById(id)` to immediately remove the physics body (call before
+ * removing message from state).
+ *
+ * @param containerRef - ref to the parent container element (for bounds)
+ * @param bubbleRefs - ref to a Map<string, HTMLElement> mapping message._id -> element
+ * @param messages - current messages array (used to detect new nodes)
+ */
 export function usePhysicsBubbles(
   containerRef: RefObject<HTMLElement | null>,
-  bubbleRefs: RefObject<(HTMLElement | null)[]>,
+  bubbleRefs: RefObject<Map<string, HTMLElement>>,
   messages: Message[],
-) {
+): UsePhysicsBubblesAPI {
   const engineRef = useRef<Matter.Engine | null>(null);
   const itemsRef = useRef<PhysicsBubble[]>([]);
   const frameRef = useRef<number>(0);
@@ -23,112 +41,227 @@ export function usePhysicsBubbles(
   const timeRef = useRef<number>(0);
 
   // ------------------------------------------------------
+  // Helpers
+  // ------------------------------------------------------
+  const noise = (t: number) => Math.sin(t * 0.7) * Math.cos(t * 1.3);
+
+  function safeRemoveBody(engine: Matter.Engine, body: Matter.Body) {
+    try {
+      // Composite.remove is more robust for nested composites
+      Matter.Composite.remove(engine.world, body, true);
+    } catch (err) {
+      console.warn(
+        'Composite.remove failed, falling back to World.remove',
+        err,
+      );
+      try {
+        Matter.World.remove(engine.world, body);
+      } catch (err2) {
+        console.error('World.remove also failed for body:', body, err2);
+      }
+    }
+  }
+
+  const debugWorld = useCallback(() => {
+    const engine = engineRef.current;
+    if (!engine) {
+      console.warn('[usePhysicsBubbles] debugWorld: engine not initialized');
+      return;
+    }
+
+    const world = engine.world;
+    console.group('[Matter Debug] World snapshot');
+    console.log('Bodies count:', world.bodies.length);
+    world.bodies.forEach((b, i) => {
+      console.log(i, {
+        id: b.id,
+        label: b.label,
+        isStatic: b.isStatic,
+        position: b.position,
+        bounds: b.bounds,
+      });
+    });
+
+    console.log('Constraints:', world.constraints.length);
+    console.log('Composites:', world.composites.length);
+    console.groupEnd();
+  }, []);
+
+  const getBodyCount = useCallback(() => {
+    return engineRef.current ? engineRef.current.world.bodies.length : 0;
+  }, []);
+
+  // ------------------------------------------------------
   // INITIAL SETUP: Create engine + first wave of bubbles
   // ------------------------------------------------------
   useEffect(() => {
     const container = containerRef.current;
-    const elements = bubbleRefs.current.filter((el) => el !== null);
 
-    if (!container || elements.length === 0) {
+    if (!container) {
       return;
     }
 
-    // Create engine once
-    const engine = Matter.Engine.create();
-    engine.gravity.y = 0;
-    engineRef.current = engine;
-
-    // Measure and create physics bodies
-    const items: PhysicsBubble[] = elements.map((el) => {
-      const id = el.dataset.id ?? '';
-      const width = el.offsetWidth;
-      const height = el.offsetHeight;
-
-      // random start position
-      const startX =
-        Math.random() * (container.clientWidth - width) + width / 2;
-      const startY =
-        Math.random() * (container.clientHeight - height) + height / 2;
-
-      el.style.transform = `translate(${startX - width / 2}px, ${startY - height / 2}px)`;
-
-      const body = Matter.Bodies.rectangle(startX, startY, width, height, {
-        restitution: 0.9,
-        frictionAir: 0.02,
-        inertia: Infinity,
-        inverseInertia: 0,
-        chamfer: { radius: 24 },
-      });
-
-      Matter.Body.setVelocity(body, {
-        x: (Math.random() - 0.5) * 4,
-        y: (Math.random() - 0.5) * 4,
-      });
-
-      return { id, el, body, width, height };
+    // Grab stable list of DOM elements currently present in bubbleRefs
+    const map = bubbleRefs.current;
+    const initialEls: { id: string; el: HTMLElement }[] = [];
+    map.forEach((el, id) => {
+      if (el) {
+        initialEls.push({ id, el });
+      }
     });
 
-    itemsRef.current = items;
-    Matter.World.add(
-      engine.world,
-      items.map((i) => i.body),
-    );
+    if (initialEls.length === 0) {
+      // no DOM nodes yet; still create engine so future adds are fine
+      const engineLazy = Matter.Engine.create();
+      engineLazy.gravity.y = 0;
+      engineRef.current = engineLazy;
+    } else {
+      // Create engine
+      const engine = Matter.Engine.create();
+      engine.gravity.y = 0;
+      engineRef.current = engine;
 
-    // Create walls
-    const createWalls = () => {
+      // Build initial physics items
+      const items: PhysicsBubble[] = initialEls.map(({ id, el }) => {
+        // Measure
+        const width = el.offsetWidth;
+        const height = el.offsetHeight;
+
+        // Set element hidden until we write transform, to avoid top-left flash
+        // NOTE: don't clobber existing visibility if user customized; read and restore if needed.
+        el.style.visibility = 'hidden';
+
+        // random start position
+        const startX =
+          Math.random() * (container.clientWidth - width) + width / 2;
+        const startY =
+          Math.random() * (container.clientHeight - height) + height / 2;
+
+        // Apply first transform and reveal element
+        el.style.transform = `translate(${startX - width / 2}px, ${startY - height / 2}px)`;
+        el.style.visibility = 'visible';
+
+        const body = Matter.Bodies.rectangle(startX, startY, width, height, {
+          restitution: 0.9,
+          friction: 0,
+          frictionAir: 0.02,
+          inertia: Infinity,
+          inverseInertia: 0,
+          chamfer: { radius: 24 },
+        });
+
+        // Add a stable label to help debugging
+        body.label = `bubble:${id}`;
+
+        Matter.Body.setVelocity(body, {
+          x: (Math.random() - 0.5) * 4,
+          y: (Math.random() - 0.5) * 4,
+        });
+
+        return { id, el, body, width, height };
+      });
+
+      itemsRef.current = items;
+      Matter.World.add(
+        engine.world,
+        items.map((i) => i.body),
+      );
+    }
+
+    // Build walls helper
+    const buildWalls = () => {
+      const engine = engineRef.current;
+      if (!engine) {
+        return;
+      }
+
       const w = container.clientWidth;
       const h = container.clientHeight;
       const t = 200;
 
-      // Remove old walls from world
-      if (wallsRef.current.length > 0 && engineRef.current) {
-        Matter.World.remove(engineRef.current.world, wallsRef.current);
+      if (wallsRef.current.length > 0) {
+        // remove previous walls safely
+        try {
+          Matter.World.remove(engine.world, wallsRef.current);
+        } catch {
+          // fallback to Composite
+          wallsRef.current.forEach((wb) => safeRemoveBody(engine, wb));
+        }
       }
 
       const walls = [
-        Matter.Bodies.rectangle(w / 2, -t / 2, w, t, { isStatic: true }),
-        Matter.Bodies.rectangle(w / 2, h + t / 2, w, t, { isStatic: true }),
-        Matter.Bodies.rectangle(-t / 2, h / 2, t, h, { isStatic: true }),
-        Matter.Bodies.rectangle(w + t / 2, h / 2, t, h, { isStatic: true }),
+        Matter.Bodies.rectangle(w / 2, -t / 2, w, t, {
+          isStatic: true,
+          label: 'wall-top',
+        }),
+        Matter.Bodies.rectangle(w / 2, h + t / 2, w, t, {
+          isStatic: true,
+          label: 'wall-bottom',
+        }),
+        Matter.Bodies.rectangle(-t / 2, h / 2, t, h, {
+          isStatic: true,
+          label: 'wall-left',
+        }),
+        Matter.Bodies.rectangle(w + t / 2, h / 2, t, h, {
+          isStatic: true,
+          label: 'wall-right',
+        }),
       ];
 
       wallsRef.current = walls;
       Matter.World.add(engine.world, walls);
     };
 
-    createWalls();
+    buildWalls();
 
-    // Observe container size changes
+    // ResizeObserver to rebuild walls on container size change
     resizeObserverRef.current = new ResizeObserver(() => {
-      createWalls();
+      buildWalls();
     });
     resizeObserverRef.current.observe(container);
 
-    // Simple noise function for floaty motion
-    const noise = (t: number) => Math.sin(t * 0.7) * Math.cos(t * 1.3);
-
     // Animation loop
+    let frameCounter = 0;
     const loop = () => {
       frameRef.current = requestAnimationFrame(loop);
+      frameCounter++;
 
-      if (!engineRef.current) {
+      const engine = engineRef.current;
+      if (!engine) {
         return;
       }
+
       timeRef.current += 0.01;
+      Matter.Engine.update(engine, 1000 / 60);
 
-      Matter.Engine.update(engineRef.current, 1000 / 60);
-
+      // Sync DOM for all live items
       for (const item of itemsRef.current) {
         const { el, body, width, height } = item;
+
+        // Ensure element is still in DOM
+        if (!document.body.contains(el)) {
+          // element removed outside of hook: schedule cleanup
+          try {
+            safeRemoveBody(engine, body);
+          } catch {
+            // do nothing
+          }
+          // remove from itemsRef
+          const idx = itemsRef.current.indexOf(item);
+          if (idx !== -1) {
+            itemsRef.current.splice(idx, 1);
+          }
+          continue;
+        }
 
         // Prevent rotation
         body.angle = 0;
 
-        // Gentle damping
+        // Soft damping
         body.velocity.x *= 0.99;
         body.velocity.y *= 0.99;
 
-        // Smooth drifting forces
+        // Floaty drift
         const driftX = noise(timeRef.current + body.id) * 0.002;
         const driftY = noise(timeRef.current + body.id * 2) * 0.002;
 
@@ -144,23 +277,39 @@ export function usePhysicsBubbles(
 
         // Update DOM position
         el.style.transform = `translate(${body.position.x - width / 2}px, ${body.position.y - height / 2}px)`;
+        // Make sure element is visible if it was previously hidden
+        if (el.style.visibility !== 'visible') {
+          el.style.visibility = 'visible';
+        }
+      }
+
+      // Periodic integrity checks
+      if (frameCounter % 60 === 0) {
+        // quick validation + optional pruning
+        validateBodyDomIntegrity();
+        pruneOrphanBodies();
       }
     };
 
     loop();
 
-    // Cleanup
+    // Cleanup on unmount
     return () => {
       cancelAnimationFrame(frameRef.current);
       resizeObserverRef.current?.disconnect();
 
       if (engineRef.current) {
-        Matter.World.clear(engineRef.current.world, false);
-        Matter.Engine.clear(engineRef.current);
+        try {
+          Matter.World.clear(engineRef.current.world, false);
+          Matter.Engine.clear(engineRef.current);
+        } catch (err) {
+          console.log('Error cleaning Matter engine on unmount', err);
+        }
       }
 
       itemsRef.current = [];
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ------------------------------------------------------
@@ -168,31 +317,35 @@ export function usePhysicsBubbles(
   // ------------------------------------------------------
   useEffect(() => {
     const container = containerRef.current;
+    const engine = engineRef.current;
 
-    if (!container || !engineRef.current) {
+    if (!container || !engine) {
       return;
     }
 
-    const engine = engineRef.current;
+    // Gather current DOM elements from Map
+    const map = bubbleRefs.current;
+    const domEntries: { id: string; el: HTMLElement }[] = [];
+    map.forEach((el, id) => {
+      if (el) {
+        domEntries.push({ id, el });
+      }
+    });
 
-    const domEls = bubbleRefs.current.filter((el) => el !== null);
     const existingEls = new Set(itemsRef.current.map((item) => item.el));
-    const existingIds = new Set(itemsRef.current.map((item) => item.id));
+    // const existingIds = new Set(itemsRef.current.map((item) => item.id));
 
-    domEls.forEach((el) => {
+    for (const { id, el } of domEntries) {
       if (existingEls.has(el)) {
-        return;
+        continue;
       }
 
-      const id = el.dataset.id ?? '';
-      // If data-id is missing, we still support creating a body but prefer id presence
-      if (!id) {
-        // TODO: If you prefer to ignore untagged elements, continue here.
-      }
-
-      // New bubble found - measure and create body
+      // Measure
       const width = el.offsetWidth;
       const height = el.offsetHeight;
+
+      // Prevent initial flash
+      el.style.visibility = 'hidden';
 
       // spawn position
       const startX =
@@ -201,14 +354,17 @@ export function usePhysicsBubbles(
         Math.random() * (container.clientHeight - height) + height / 2;
 
       el.style.transform = `translate(${startX - width / 2}px, ${startY - height / 2}px)`;
+      el.style.visibility = 'visible';
 
       const body = Matter.Bodies.rectangle(startX, startY, width, height, {
         restitution: 0.9,
+        friction: 0,
         frictionAir: 0.02,
         inertia: Infinity,
         inverseInertia: 0,
       });
 
+      body.label = `bubble:${id}`;
       Matter.World.add(engine.world, body);
 
       // Add to live list
@@ -219,44 +375,133 @@ export function usePhysicsBubbles(
         x: (Math.random() - 0.5) * 4,
         y: (Math.random() - 0.5) * 4,
       });
-    });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   // Expose remove by id callback so parent component (socket handler) can remove immediately
   const removeBubbleById = useCallback((id: string) => {
-    if (!engineRef.current) {
+    const engine = engineRef.current;
+    if (!engine) {
       return;
     }
 
     const idx = itemsRef.current.findIndex((item) => item.id === id);
     if (idx === -1) {
+      console.warn('[removeBubbleById] No physics item for id:', id);
       return;
     }
 
     const item = itemsRef.current[idx];
 
-    // Remove body from world
-    Matter.World.remove(engineRef.current.world, item.body);
+    // safe remove
+    safeRemoveBody(engine, item.body);
 
     // Remove from live list
     itemsRef.current.splice(idx, 1);
+
+    // debug assertion
+    if (engine.world.bodies.includes(item.body)) {
+      console.error('[removeBubbleById] Failed to remove body:', id, item.body);
+    } else {
+      // optionally log
+      // console.log('[removeBubbleById] Removed body:', id)
+    }
   }, []);
 
   // Also expose remove by element as an alternative
   const removeBubbleByElement = useCallback((el: HTMLElement) => {
-    if (!engineRef.current) {
+    const engine = engineRef.current;
+    if (!engine) {
       return;
     }
 
     const idx = itemsRef.current.findIndex((item) => item.el === el);
     if (idx === -1) {
+      console.warn('[removeBubbleByElement] No physics item for element:', el);
       return;
     }
 
     const item = itemsRef.current[idx];
-    Matter.World.remove(engineRef.current.world, item.body);
+    safeRemoveBody(engine, item.body);
     itemsRef.current.splice(idx, 1);
   }, []);
 
-  return { removeBubbleById, removeBubbleByElement };
+  function validateBodyDomIntegrity() {
+    const engine = engineRef.current;
+    if (!engine) {
+      return;
+    }
+
+    const worldBodies = engine.world.bodies.slice();
+    const items = itemsRef.current;
+
+    // 1. Body count vs items count
+    if (worldBodies.length !== items.length + wallsRef.current.length) {
+      console.warn(
+        '[Matter Integrity] world.bodies.length:',
+        worldBodies.length,
+        'items:',
+        items.length,
+        'walls:',
+        wallsRef.current.length,
+      );
+    }
+
+    // 2. Each item should map to a body in the world
+    for (const item of items) {
+      if (!worldBodies.includes(item.body)) {
+        console.error(
+          "[Matter Integrity] Item's body not found in the world:",
+          item.id,
+          item.body,
+        );
+      }
+      // element presence
+      if (!item.el || !document.body.contains(item.el)) {
+        console.error('[Matter Integrity] Item DOM missing for:', item.id);
+      }
+    }
+
+    // 3. Orphan bodies (non-static bodies not referenced by itemsRef)
+    const itemBodies = new Set(items.map((item) => item.body));
+    for (const b of worldBodies) {
+      if (b.isStatic) {
+        continue;
+      }
+      if (!itemBodies.has(b)) {
+        console.warn('[Matter Integrity] Orphan body detected:', b);
+      }
+    }
+  }
+
+  function pruneOrphanBodies() {
+    const engine = engineRef.current;
+    if (!engine) {
+      return;
+    }
+
+    const itemBodies = new Set(itemsRef.current.map((item) => item.body));
+    const toRemove: Matter.Body[] = [];
+
+    for (const b of engine.world.bodies) {
+      if (b.isStatic) {
+        continue;
+      }
+      if (!itemBodies.has(b)) {
+        toRemove.push(b);
+      }
+    }
+
+    if (toRemove.length === 0) {
+      return;
+    }
+
+    for (const b of toRemove) {
+      console.warn('[pruneOrphanBodies] Removing orphan body:', b);
+      safeRemoveBody(engine, b);
+    }
+  }
+
+  return { removeBubbleById, removeBubbleByElement, debugWorld, getBodyCount };
 }
