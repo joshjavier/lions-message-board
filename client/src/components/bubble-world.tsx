@@ -3,9 +3,7 @@ import { socket } from '@/lib/socket';
 import type { Message } from '@/lib/types';
 import { useEffect, useRef } from 'react';
 import { DebugPanel } from './debug-panel';
-import { cn } from '@/lib/utils';
-
-import './bubble.css';
+import { MessageBoard } from './message-board';
 
 interface BubbleWorldProps {
   messages: Message[];
@@ -58,27 +56,11 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
 
   return (
     <>
-      <div
+      <MessageBoard
         ref={containerRef}
-        className="relative h-screen w-screen overflow-hidden bg-[url(/message-board-background.png)] bg-cover bg-top-right bg-no-repeat"
-      >
-        {messages.map((message) => (
-          <div
-            key={message._id}
-            data-id={message._id}
-            ref={(el) => {
-              if (el) {
-                bubbleRefs.current.set(message._id, el);
-              } else {
-                bubbleRefs.current.delete(message._id);
-              }
-            }}
-            className={cn('bubble', import.meta.env.DEV && 'bubble-debug')}
-          >
-            {message.body}
-          </div>
-        ))}
-      </div>
+        messages={messages}
+        bubbleRefs={bubbleRefs}
+      />
 
       {import.meta.env.DEV && <DebugPanel physics={physics} />}
     </>
