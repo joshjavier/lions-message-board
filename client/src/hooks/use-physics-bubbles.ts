@@ -276,6 +276,9 @@ export function usePhysicsBubbles(
         const ty = body.position.y - height / 2;
         el.style.setProperty('--tx', `${tx}px`);
         el.style.setProperty('--ty', `${ty}px`);
+
+        el.style.setProperty('--w', `${width}px`);
+        el.style.setProperty('--h', `${height}px`);
       }
 
       // Periodic integrity checks

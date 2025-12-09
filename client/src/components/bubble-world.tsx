@@ -77,7 +77,7 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
                 bubbleRefs.current.delete(message._id);
               }
             }}
-            className="bubble"
+            className="bubble bubble-debug"
           >
             {message.body}
           </div>

@@ -34,3 +34,14 @@
   opacity: 0;
   --scale: 0.8;
 }
+
+.bubble-debug::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--w);
+  height: var(--h);
+  border: 2px dashed red;
+  pointer-events: none;
+}
