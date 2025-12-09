@@ -3,6 +3,7 @@ import { socket } from '@/lib/socket';
 import type { Message } from '@/lib/types';
 import { useEffect, useRef } from 'react';
 import { DebugPanel } from './debug-panel';
+import { cn } from '@/lib/utils';
 
 import './bubble.css';
 
@@ -55,11 +56,6 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
     };
   }, []);
 
-  // useEffect(() => {
-  //   const interval = setInterval(debugWorld, 2000);
-  //   return () => clearInterval(interval);
-  // }, []);
-
   return (
     <>
       <div
@@ -77,14 +73,14 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
                 bubbleRefs.current.delete(message._id);
               }
             }}
-            className="bubble bubble-debug"
+            className={cn('bubble', import.meta.env.DEV && 'bubble-debug')}
           >
             {message.body}
           </div>
         ))}
       </div>
 
-      <DebugPanel physics={physics} />
+      {import.meta.env.DEV && <DebugPanel physics={physics} />}
     </>
   );
 }
