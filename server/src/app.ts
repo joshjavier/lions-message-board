@@ -1,15 +1,14 @@
 import express from 'express';
-import type { SocketApi } from './socket/index.js';
 import { createMessageRouter } from './routes/messages.js';
 import path from 'node:path';
 
-export function createApp(socketApi: SocketApi) {
+export function createApp() {
   const app = express();
 
   app.use(express.json());
 
   // Routes
-  app.use('/messages', createMessageRouter(socketApi));
+  app.use('/messages', createMessageRouter());
 
   // Serve frontend
   const publicDir = path.join(import.meta.dirname, '../public');

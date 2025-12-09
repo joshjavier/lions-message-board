@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import type { SocketApi } from '../socket/index.js';
 import {
   fetchActiveMessages,
   insertMessage,
 } from '../services/message-service.js';
 
-export function createMessageRouter(socketApi: SocketApi) {
+export function createMessageRouter() {
   const router = Router();
 
   router.post('/', async (req, res, next) => {
@@ -17,8 +16,6 @@ export function createMessageRouter(socketApi: SocketApi) {
 
       const saved = await insertMessage(body, author);
 
-      await socketApi.pushNewMessage(saved);
-
       res.json({ ok: true, message: saved });
     } catch (err) {
       next(err);
@@ -27,7 +24,7 @@ export function createMessageRouter(socketApi: SocketApi) {
 
   router.get('/active', async (_req, res) => {
     const messages = await fetchActiveMessages(10);
-    res.json({ ok: true, messages });
+    res.json(messages);
   });
 
   return router;
