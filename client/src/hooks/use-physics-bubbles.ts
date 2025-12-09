@@ -127,19 +127,15 @@ export function usePhysicsBubbles(
         const width = el.offsetWidth;
         const height = el.offsetHeight;
 
-        // Set element hidden until we write transform, to avoid top-left flash
-        // NOTE: don't clobber existing visibility if user customized; read and restore if needed.
-        el.style.visibility = 'hidden';
-
         // random start position
         const startX =
           Math.random() * (container.clientWidth - width) + width / 2;
         const startY =
           Math.random() * (container.clientHeight - height) + height / 2;
 
-        // Apply first transform and reveal element
-        el.style.transform = `translate(${startX - width / 2}px, ${startY - height / 2}px)`;
-        el.style.visibility = 'visible';
+        // Apply first transform
+        el.style.setProperty('--tx', `${startX - width / 2}px`);
+        el.style.setProperty('--ty', `${startY - height / 2}px`);
 
         const body = Matter.Bodies.rectangle(startX, startY, width, height, {
           restitution: 0.9,
@@ -276,11 +272,10 @@ export function usePhysicsBubbles(
         Matter.Body.applyForce(body, body.position, { x: pullX, y: pullY });
 
         // Update DOM position
-        el.style.transform = `translate(${body.position.x - width / 2}px, ${body.position.y - height / 2}px)`;
-        // Make sure element is visible if it was previously hidden
-        if (el.style.visibility !== 'visible') {
-          el.style.visibility = 'visible';
-        }
+        const tx = body.position.x - width / 2;
+        const ty = body.position.y - height / 2;
+        el.style.setProperty('--tx', `${tx}px`);
+        el.style.setProperty('--ty', `${ty}px`);
       }
 
       // Periodic integrity checks
@@ -344,17 +339,14 @@ export function usePhysicsBubbles(
       const width = el.offsetWidth;
       const height = el.offsetHeight;
 
-      // Prevent initial flash
-      el.style.visibility = 'hidden';
-
       // spawn position
       const startX =
         Math.random() * (container.clientWidth - width) + width / 2;
       const startY =
         Math.random() * (container.clientHeight - height) + height / 2;
 
-      el.style.transform = `translate(${startX - width / 2}px, ${startY - height / 2}px)`;
-      el.style.visibility = 'visible';
+      el.style.setProperty('--tx', `${startX - width / 2}px`);
+      el.style.setProperty('--ty', `${startY - height / 2}px`);
 
       const body = Matter.Bodies.rectangle(startX, startY, width, height, {
         restitution: 0.9,

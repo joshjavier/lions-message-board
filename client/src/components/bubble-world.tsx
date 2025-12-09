@@ -4,6 +4,8 @@ import type { Message } from '@/lib/types';
 import { useEffect, useRef } from 'react';
 import { DebugPanel } from './debug-panel';
 
+import './bubble.css';
+
 interface BubbleWorldProps {
   messages: Message[];
   removeFromState: (id: string) => void;
@@ -16,9 +18,34 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
   const physics = usePhysicsBubbles(containerRef, bubbleRefs, messages);
 
   const onMessageExpired = ({ _id }: { _id: string }) => {
-    physics.removeBubbleById(_id);
-    removeFromState(_id);
+    const el = bubbleRefs.current.get(_id);
+    if (el) {
+      // freeze physics transform
+      const computed = getComputedStyle(el).transform;
+      el.style.transform = computed;
+
+      // animate exit
+      el.classList.add('exit');
+
+      // remove after animation
+      setTimeout(() => {
+        physics.removeBubbleById(_id);
+        removeFromState(_id);
+      }, 250);
+    }
   };
+
+  useEffect(() => {
+    // after render, trigger CSS enter animation
+    for (const message of messages) {
+      const el = bubbleRefs.current.get(message._id);
+      if (el) {
+        requestAnimationFrame(() => {
+          el.classList.add('enter-active');
+        });
+      }
+    }
+  }, [messages]);
 
   useEffect(() => {
     socket.on('message-expired', onMessageExpired);
@@ -50,7 +77,7 @@ export function BubbleWorld({ messages, removeFromState }: BubbleWorldProps) {
                 bubbleRefs.current.delete(message._id);
               }
             }}
-            className="pointer-events-none absolute max-w-80 rounded-3xl bg-[#eae3c9] px-5 py-3 text-lg/[1.35] font-medium text-[#1a1a1a] will-change-transform select-none"
+            className="bubble"
           >
             {message.body}
           </div>
