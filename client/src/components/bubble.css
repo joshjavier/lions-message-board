@@ -20,9 +20,7 @@
   transform: translate(var(--tx), var(--ty)) scale(var(--scale));
   opacity: 0;
 
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+  transition: opacity 0.25s ease;
 }
 
 .bubble.enter-active {
