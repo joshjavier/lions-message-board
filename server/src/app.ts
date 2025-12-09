@@ -11,7 +11,7 @@ export function createApp() {
   app.use('/messages', createMessageRouter());
 
   // Serve frontend
-  const publicDir = path.join(import.meta.dirname, '../public');
+  const publicDir = path.join(import.meta.dirname, 'public');
   app.use(express.static(publicDir));
 
   // SPA fallback
