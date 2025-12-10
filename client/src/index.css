@@ -46,7 +46,7 @@
 :root {
   --font-albert-sans: 'Albert Sans', sans-serif;
   --radius: 0.625rem;
-  --background: var(--color-slate-200);
+  --background: #050300;
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
