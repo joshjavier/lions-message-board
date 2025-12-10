@@ -39,6 +39,7 @@ export function MessageBoard({
           className={cn('bubble', import.meta.env.DEV && 'bubble-debug')}
         >
           {message.body}
+          {message.author && ` - ${message.author}`}
         </div>
       ))}
     </div>
