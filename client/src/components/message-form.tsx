@@ -21,6 +21,8 @@ import * as v from 'valibot';
 import { api } from '@/lib/api-client';
 import { MESSAGE_MAX_LENGTH } from '@/lib/constants';
 import { Spinner } from './ui/spinner';
+import { Dialog, DialogContent } from './ui/dialog';
+import { useState } from 'react';
 
 const formSchema = v.object({
   author: v.pipe(v.string()),
@@ -39,6 +41,7 @@ export function MessageForm({
 }: {
   maxLength?: number;
 }) {
+  const [open, setOpen] = useState(false);
   const form = useForm({
     defaultValues: {
       author: '',
@@ -53,133 +56,151 @@ export function MessageForm({
     },
     onSubmit: async ({ value, formApi }) => {
       await api.post('messages', { json: value });
+      setOpen(true);
       formApi.reset();
     },
   });
 
   return (
-    <Card className="mx-auto w-full gap-8 rounded-3xl bg-amber-50 py-8 text-amber-950 sm:max-w-lg">
-      <CardHeader>
-        <CardTitle className="pb-6 text-center text-2xl">
-          <h1>Post-a-Message</h1>
-        </CardTitle>
-        <CardDescription className="text-stone-600 sm:text-lg">
-          <p>
-            Share a shout-out, cheer, or holiday message with the team! Your
-            message will appear on the screens across the production floor.
-          </p>
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form
-          id="message-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <FieldGroup>
-            <form.Field
-              name="author"
-              children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid;
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>
-                      Name (optional)
-                    </FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      aria-invalid={isInvalid}
-                      placeholder="Midoriya"
-                      autoComplete="off"
-                    />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </Field>
-                );
-              }}
-            />
-
-            <form.Field
-              name="body"
-              children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid;
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Message</FieldLabel>
-                    <InputGroup>
-                      <InputGroupTextarea
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Card className="mx-auto w-full gap-8 rounded-3xl bg-amber-50 py-8 text-amber-950 sm:max-w-lg">
+        <CardHeader>
+          <CardTitle className="pb-6 text-center text-2xl">
+            <h1>Post-a-Message</h1>
+          </CardTitle>
+          <CardDescription className="text-stone-600 sm:text-lg">
+            <p>
+              Share a shout-out, cheer, or holiday message with the team! Your
+              message will appear on the screens across the production floor.
+            </p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form
+            id="message-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              form.handleSubmit();
+            }}
+          >
+            <FieldGroup>
+              <form.Field
+                name="author"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        Name (optional)
+                      </FieldLabel>
+                      <Input
                         id={field.name}
                         name={field.name}
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="Ganbare!"
-                        rows={3}
-                        className="min-h-24 resize-none"
                         aria-invalid={isInvalid}
+                        placeholder="Midoriya"
+                        autoComplete="off"
                       />
-                      <InputGroupAddon align="block-end">
-                        <InputGroupText
-                          className={cn(
-                            'ml-auto tabular-nums',
-                            field.state.value.length > maxLength &&
-                              'text-destructive',
-                          )}
-                        >
-                          {maxLength - field.state.value.length}
-                        </InputGroupText>
-                      </InputGroupAddon>
-                    </InputGroup>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </Field>
-                );
-              }}
-            />
-          </FieldGroup>
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  );
+                }}
+              />
 
-          {/* {success && <p className="text-green-600">Message sent!</p>} */}
-        </form>
-      </CardContent>
-      <CardFooter>
-        <form.Subscribe
-          selector={(state) => [
-            state.values.body.length > maxLength,
-            state.canSubmit,
-            state.isSubmitting,
-          ]}
-          children={([overlimit, canSubmit, isSubmitting]) => (
-            <Field orientation="horizontal" className="justify-end">
-              {/* <Button */}
-              {/*   type="button" */}
-              {/*   variant="outline" */}
-              {/*   onClick={() => form.reset()} */}
-              {/* > */}
-              {/*   Reset */}
-              {/* </Button> */}
-              <Button
-                type="submit"
-                form="message-form"
-                disabled={overlimit || !canSubmit}
-                size="lg"
-                className="w-full min-w-32 rounded-3xl bg-amber-200 text-lg font-semibold text-stone-700 hover:bg-amber-300"
-              >
-                {isSubmitting ? <Spinner /> : 'Post Message'}
-              </Button>
-            </Field>
-          )}
-        />
-      </CardFooter>
-    </Card>
+              <form.Field
+                name="body"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Message</FieldLabel>
+                      <InputGroup>
+                        <InputGroupTextarea
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="Ganbare!"
+                          rows={3}
+                          className="min-h-24 resize-none"
+                          aria-invalid={isInvalid}
+                        />
+                        <InputGroupAddon align="block-end">
+                          <InputGroupText
+                            className={cn(
+                              'ml-auto tabular-nums',
+                              field.state.value.length > maxLength &&
+                                'text-destructive',
+                            )}
+                          >
+                            {maxLength - field.state.value.length}
+                          </InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  );
+                }}
+              />
+            </FieldGroup>
+
+            {/* {success && <p className="text-green-600">Message sent!</p>} */}
+          </form>
+        </CardContent>
+        <CardFooter>
+          <form.Subscribe
+            selector={(state) => [
+              state.values.body.length > maxLength,
+              state.canSubmit,
+              state.isSubmitting,
+            ]}
+            children={([overlimit, canSubmit, isSubmitting]) => (
+              <Field orientation="horizontal" className="justify-end">
+                {/* <Button */}
+                {/*   type="button" */}
+                {/*   variant="outline" */}
+                {/*   onClick={() => form.reset()} */}
+                {/* > */}
+                {/*   Reset */}
+                {/* </Button> */}
+                <Button
+                  type="submit"
+                  form="message-form"
+                  disabled={overlimit || !canSubmit}
+                  size="lg"
+                  className="w-full min-w-32 rounded-3xl bg-amber-200 text-lg font-semibold text-stone-700 hover:bg-amber-300"
+                >
+                  {isSubmitting ? <Spinner /> : 'Post Message'}
+                </Button>
+              </Field>
+            )}
+          />
+        </CardFooter>
+      </Card>
+
+      <DialogContent className="text-center sm:max-w-sm">
+        <h2 className="text-lg font-semibold">Message sent!</h2>
+        <p>
+          Your message is now in the queue and will appear on the board shortly.
+        </p>
+        <Button
+          variant="default"
+          size="lg"
+          onClick={() => setOpen(false)}
+          className="justify-self-center rounded-3xl bg-stone-700 hover:bg-stone-600"
+        >
+          Post another message
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 }
