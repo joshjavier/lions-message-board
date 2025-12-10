@@ -20,6 +20,7 @@ import { revalidateLogic, useForm } from '@tanstack/react-form';
 import * as v from 'valibot';
 import { api } from '@/lib/api-client';
 import { MESSAGE_MAX_LENGTH } from '@/lib/constants';
+import { Spinner } from './ui/spinner';
 
 const formSchema = v.object({
   author: v.pipe(v.string()),
@@ -57,12 +58,16 @@ export function MessageForm({
   });
 
   return (
-    <Card className="mx-auto w-full sm:max-w-md">
+    <Card className="mx-auto w-full gap-8 rounded-3xl bg-amber-50 py-8 text-amber-950 sm:max-w-lg">
       <CardHeader>
-        <CardTitle>Post a Message</CardTitle>
-        <CardDescription>
-          Share a shout-out, cheer, or holiday message with the team! Your
-          message will appear on the screens across the production floor.
+        <CardTitle className="pb-6 text-center text-2xl">
+          <h1>Post-a-Message</h1>
+        </CardTitle>
+        <CardDescription className="text-stone-600 sm:text-lg">
+          <p>
+            Share a shout-out, cheer, or holiday message with the team! Your
+            message will appear on the screens across the production floor.
+          </p>
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -166,9 +171,10 @@ export function MessageForm({
                 type="submit"
                 form="message-form"
                 disabled={overlimit || !canSubmit}
-                className="min-w-32"
+                size="lg"
+                className="w-full min-w-32 rounded-3xl bg-amber-200 text-lg font-semibold text-stone-700 hover:bg-amber-300"
               >
-                {isSubmitting ? '...' : 'Post Message'}
+                {isSubmitting ? <Spinner /> : 'Post Message'}
               </Button>
             </Field>
           )}
