@@ -23,6 +23,8 @@ import { MESSAGE_MAX_LENGTH } from '@/lib/constants';
 import { Spinner } from './ui/spinner';
 import { Dialog, DialogContent } from './ui/dialog';
 import { useState } from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import messageSentAnimation from '@/assets/message-sent.json';
 
 const formSchema = v.object({
   author: v.pipe(v.string()),
@@ -152,8 +154,6 @@ export function MessageForm({
                 }}
               />
             </FieldGroup>
-
-            {/* {success && <p className="text-green-600">Message sent!</p>} */}
           </form>
         </CardContent>
         <CardFooter>
@@ -188,6 +188,7 @@ export function MessageForm({
       </Card>
 
       <DialogContent className="text-center sm:max-w-sm">
+        <DotLottieReact data={messageSentAnimation} autoplay />
         <h2 className="text-lg font-semibold">Message sent!</h2>
         <p>
           Your message is now in the queue and will appear on the board shortly.
