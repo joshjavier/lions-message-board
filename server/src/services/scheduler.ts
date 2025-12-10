@@ -1,6 +1,7 @@
 import type { Server } from 'socket.io';
 import { getMessageCollection } from './message-service.js';
-import { MAX_ACTIVE } from '../lib/constants.js';
+import { MAX_ACTIVE, PLACEHOLDER_MESSAGES } from '../lib/constants.js';
+import type { Message } from '../types/message.js';
 
 export function startSchedulers(io: Server) {
   setInterval(() => expireDisplayedMessages(io), 2000);
@@ -59,18 +60,35 @@ async function maintainActiveMessageCount(io: Server) {
   const now = new Date();
   const expiresAt = (mins: number) => new Date(Date.now() + mins * 60_000);
 
-  for (const msg of toDisplay) {
-    await col.updateOne(
-      { _id: msg._id },
-      {
-        $set: {
-          status: 'displaying',
-          displayedAt: now,
-          expiresAt: expiresAt(1),
-        },
-      },
-    );
+  if (activeCount + toDisplay.length === 0) {
+    // Use placeholder messages if database is empty
+    for (const body of PLACEHOLDER_MESSAGES) {
+      const result = await col.insertOne({
+        body,
+        createdAt: now,
+        status: 'displaying',
+        displayedAt: now,
+        expiresAt: expiresAt(1),
+      } as Message);
 
-    io.emit('message-activated', msg);
+      const message = { _id: result.insertedId, ...result };
+
+      io.emit('message-activated', message);
+    }
+  } else {
+    for (const message of toDisplay) {
+      await col.updateOne(
+        { _id: message._id },
+        {
+          $set: {
+            status: 'displaying',
+            displayedAt: now,
+            expiresAt: expiresAt(1),
+          },
+        },
+      );
+
+      io.emit('message-activated', message);
+    }
   }
 }
